@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>IRIM Public Dashboard</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <!-- Fonts & Icons -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,9 +13,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
-body{background:#eef2f7;color:#0f172a}
-.app{display:flex;min-height:100vh}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif;}
+body{background:#eef2f7;color:#0f172a;overflow-x:hidden;}
+.app{display:flex;min-height:100vh;position:relative;}
 
 /* ================= SIDEBAR ================= */
 .sidebar{
@@ -28,6 +28,7 @@ body{background:#eef2f7;color:#0f172a}
     position:fixed;
     height:100%;
     overflow-y:auto;
+    left:0;
 }
 .sidebar img{
     width:80px;height:80px;border-radius:50%;
@@ -57,6 +58,10 @@ body{background:#eef2f7;color:#0f172a}
     padding:12px 16px;
     justify-content:space-between;
     align-items:center;
+    position:fixed;
+    width:100%;
+    z-index:200;
+    box-shadow:0 2px 6px rgba(0,0,0,0.2);
 }
 .topbar button{
     background:#2563eb;
@@ -64,6 +69,7 @@ body{background:#eef2f7;color:#0f172a}
     color:#fff;
     padding:8px 12px;
     border-radius:8px;
+    font-size:16px;
 }
 
 /* ================= MAIN ================= */
@@ -94,8 +100,8 @@ body{background:#eef2f7;color:#0f172a}
 
 /* ================= TABLE ================= */
 .table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:13px;min-width:400px}
-th,td{padding:10px;border-bottom:1px solid #e5e7eb}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:400px;}
+th,td{padding:10px;border-bottom:1px solid #e5e7eb;text-align:left;}
 th{background:#f1f5f9}
 
 /* ================= INCIDENT GRID ================= */
@@ -107,9 +113,9 @@ th{background:#f1f5f9}
 }
 
 /* ================= STATUS ================= */
-.green{color:#16a34a;font-weight:600}
-.orange{color:#f59e0b;font-weight:600}
-.red{color:#dc2626;font-weight:600}
+.green{color:#16a34a;font-weight:600;}
+.orange{color:#f59e0b;font-weight:600;}
+.red{color:#dc2626;font-weight:600;}
 
 /* ================= MODAL ================= */
 .modal{
@@ -130,29 +136,49 @@ th{background:#f1f5f9}
 }
 .close{float:right;font-size:18px;cursor:pointer}
 
+/* ================= OVERLAY FOR MOBILE SIDEBAR ================= */
+#overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.4);
+    z-index:90;
+}
+
 /* ================= RESPONSIVE ================= */
-@media(max-width:1024px){
-    .container{grid-template-columns:1fr; padding:10px}
-    #map{height:360px}
-    .main{margin-left:0}
+@media(max-width:1200px){
+    .container{grid-template-columns:1fr; padding:15px;}
+    #map{height:360px;}
+    .main{margin-left:0;}
 }
 @media(max-width:768px){
-    .app{flex-direction:column}
-    .sidebar{display:none; position:fixed; left:-300px; top:0; height:100%}
-    .topbar{display:flex}
-    .main{margin-left:0; padding-top:10px}
-    table{font-size:12px}
-    #map{height:300px}
+    .app{flex-direction:column;}
+    .sidebar{
+        left:-300px;
+        display:block;
+        transition:left 0.3s ease;
+    }
+    .sidebar.show{left:0;}
+    .topbar{display:flex;}
+    .main{margin-left:0;padding-top:60px;}
+    table{font-size:12px;}
+    #map{height:300px;}
+}
+@media(max-width:480px){
+    .topbar button{padding:6px 10px;font-size:14px;}
+    .sidebar a{padding:10px 12px;font-size:14px;}
+    .panel,.card{padding:14px;}
 }
 </style>
 </head>
-
 <body>
 
 <div class="topbar">
   <strong>IRIM Dashboard</strong>
   <button onclick="toggleMenu()">☰ Menu</button>
 </div>
+
+<div id="overlay" onclick="closeMenu()"></div>
 
 <div class="app">
 
@@ -256,28 +282,13 @@ th{background:#f1f5f9}
 const map = L.map('map').setView([23.2156, 72.6369], 12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// 20 sample events around Gandhinagar
+// Sample events
 const events = [
   {lat:23.2156, lng:72.6369, icon:"🎉", text:"Public Rally – Sector 11"},
   {lat:23.2180, lng:72.6400, icon:"🚧", text:"Road Maintenance – Infocity"},
   {lat:23.2200, lng:72.6300, icon:"🚑", text:"Medical Emergency – CH Road"},
   {lat:23.2100, lng:72.6500, icon:"🚦", text:"Traffic Diversion – Sector 21"},
-  {lat:23.2250, lng:72.6200, icon:"🎤", text:"Public Protest – Sector 14"},
-  {lat:23.2300, lng:72.6350, icon:"🎪", text:"Public Fair – Sector 15"},
-  {lat:23.2050, lng:72.6400, icon:"🚧", text:"Bridge Repair – Sector 12"},
-  {lat:23.2120, lng:72.6380, icon:"🎉", text:"Cultural Event – Sector 16"},
-  {lat:23.2185, lng:72.6250, icon:"🚑", text:"Ambulance Movement – Sector 10"},
-  {lat:23.2205, lng:72.6450, icon:"⛔", text:"Road Closed – Sector 13"},
-  {lat:23.2170, lng:72.6300, icon:"🎤", text:"Street Performance – Sector 18"},
-  {lat:23.2130, lng:72.6280, icon:"🎪", text:"Food Festival – Sector 9"},
-  {lat:23.2220, lng:72.6340, icon:"🚦", text:"Signal Failure – Sector 20"},
-  {lat:23.2105, lng:72.6220, icon:"🎉", text:"Marathon – Sector 7"},
-  {lat:23.2255, lng:72.6370, icon:"🚧", text:"Pothole Repair – Sector 5"},
-  {lat:23.2190, lng:72.6400, icon:"🚑", text:"Medical Emergency – Sector 3"},
-  {lat:23.2150, lng:72.6200, icon:"🎤", text:"Public Rally – Sector 8"},
-  {lat:23.2080, lng:72.6350, icon:"🎪", text:"Community Fair – Sector 6"},
-  {lat:23.2230, lng:72.6250, icon:"🚦", text:"Traffic Jam – Sector 19"},
-  {lat:23.2115, lng:72.6285, icon:"🎉", text:"Cultural Parade – Sector 4"}
+  {lat:23.2250, lng:72.6200, icon:"🎤", text:"Public Protest – Sector 14"}
 ];
 
 // Add markers
@@ -289,8 +300,14 @@ events.forEach(e=>{
 
 // Sidebar toggle
 function toggleMenu(){
-  const s=document.getElementById("sidebar");
-  s.style.left = s.style.left==="0px" ? "-300px" : "0px";
+  const s = document.getElementById("sidebar");
+  const overlay = document.getElementById("overlay");
+  s.classList.toggle("show");
+  overlay.style.display = s.classList.contains("show") ? "block" : "none";
+}
+function closeMenu(){
+  document.getElementById("sidebar").classList.remove("show");
+  document.getElementById("overlay").style.display="none";
 }
 
 // Modal functions
@@ -332,9 +349,7 @@ function openModal(type){
   }
   document.getElementById("modal").style.display="flex";
 }
-function closeModal(){
-  document.getElementById("modal").style.display="none";
-}
+function closeModal(){document.getElementById("modal").style.display="none";}
 </script>
 </body>
 </html>
