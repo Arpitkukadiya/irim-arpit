@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Select Role</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Font Awesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+/* ===== RESET ===== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', sans-serif;
+}
+
+/* ===== BODY ===== */
+body {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px;
+}
+
+/* ===== HEADER ===== */
+.header {
+    width: 100%;
+    max-width: 1100px;
+    text-align: center;
+    color: #fff;
+    margin: 40px 0 30px;
+    animation: fadeIn 1s ease;
+}
+.header h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+.header p {
+    font-size: 16px;
+    color: #cbd5e1;
+}
+
+/* ===== CONTAINER ===== */
+.container {
+    width: 100%;
+    max-width: 1100px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 24px;
+    animation: fadeIn 0.8s ease;
+}
+
+/* ===== ROLE CARD ===== */
+.card {
+    background: #ffffff;
+    flex: 1 1 30%;
+    min-width: 260px;
+    padding: 36px 24px;
+    border-radius: 20px;
+    box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px rgba(37,99,235,0.35);
+}
+
+/* ===== ICON ===== */
+.card i {
+    font-size: 50px;
+    color: #2563eb;
+    margin-bottom: 20px;
+    transition: transform 0.3s;
+}
+.card:hover i {
+    transform: rotate(20deg);
+}
+
+/* ===== ROLE NAME ===== */
+.card h3 {
+    font-size: 20px;
+    color: #0f172a;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+/* ===== LOGIN BUTTON ===== */
+.card button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+    width: 100%;
+}
+.card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(37,99,235,0.4);
+}
+
+/* ===== ANIMATION ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 900px) {
+    .container {
+        justify-content: center;
+        gap: 20px;
+    }
+    .card {
+        flex: 1 1 45%;
+    }
+}
+
+@media (max-width: 600px) {
+    .card {
+        flex: 1 1 80%;
+    }
+}
+
+@media (max-width: 480px) {
+    .header h2 {
+        font-size: 24px;
+    }
+    .header p {
+        font-size: 14px;
+    }
+    .card i {
+        font-size: 40px;
+    }
+    .card h3 {
+        font-size: 18px;
+    }
+    .card {
+        padding: 28px 20px;
+    }
+    .container {
+        gap: 16px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+    <h2>Select Your Role 👤</h2>
+    <p>Choose your role to login and continue</p>
+</div>
+
+<div class="container">
+    <!-- User Card -->
+    <div class="card">
+        <i class="fa-solid fa-user"></i>
+        <h3>User</h3>
+        <button onclick="goRole('user')">Login</button>
+    </div>
+
+    <!-- Admin Card -->
+    <div class="card">
+        <i class="fa-solid fa-user-tie"></i>
+        <h3>Admin</h3>
+        <button onclick="goRole('admin')">Login</button>
+    </div>
+
+    <!-- Super Admin Card -->
+    <div class="card">
+        <i class="fa-solid fa-user-shield"></i>
+        <h3>Super Admin</h3>
+        <button onclick="goRole('superadmin')">Login</button>
+    </div>
+</div>
+
+<script>
+function goRole(role) {
+    // Customize redirects per role
+    if(role === "user") {
+        window.location.href = "user-dashboard.html";
+    } else if(role === "admin") {
+        window.location.href = "admin-dashboard.html";
+    } else if(role === "superadmin") {
+        window.location.href = "superadmin-dashboard.html";
+    }
+}
+</script>
+
+</body>
+</html>

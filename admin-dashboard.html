@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IRIM Full Admin Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+<!-- Fonts & Icons -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+body{background:#eef2f7;color:#0f172a}
+.app{display:flex;min-height:100vh}
+.sidebar{width:260px;background:linear-gradient(180deg,#0f172a,#020617);color:#fff;padding:20px;transition:0.3s;z-index:100;position:fixed;height:100%;overflow-y:auto}
+.sidebar img{width:80px;height:80px;border-radius:50%;border:3px solid #3b82f6}
+.sidebar h3{margin-top:10px;font-weight:600}
+.sidebar p{font-size:12px;color:#94a3b8}
+.sidebar a{display:flex;align-items:center;gap:10px;padding:12px 14px;margin:8px 0;color:#cbd5e1;border-radius:12px;text-decoration:none;transition:.3s;cursor:pointer}
+.sidebar a:hover{background:#2563eb;color:#fff}
+.logout{background:#dc2626;color:#fff;justify-content:center;display:flex;align-items:center;padding:10px}
+.topbar{display:none;background:#020617;color:#fff;padding:12px 16px;justify-content:space-between;align-items:center}
+.topbar button{background:#2563eb;border:none;color:#fff;padding:8px 12px;border-radius:8px}
+.main{flex:1;margin-left:260px;transition:0.3s}
+.container{display:grid;grid-template-columns:1fr;gap:20px;padding:20px}
+.panel,.card{background:#fff;border-radius:18px;padding:18px;box-shadow:0 12px 28px rgba(0,0,0,.08)}
+.panel h3,.card h4{margin-bottom:12px;color:#1e3a8a}
+#map{height:420px;border-radius:16px}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px;min-width:400px}
+th,td{padding:10px;border-bottom:1px solid #e5e7eb}
+th{background:#f1f5f9}
+button{padding:6px 10px;border:none;border-radius:6px;cursor:pointer}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);align-items:center;justify-content:center;z-index:1000}
+.modal-content{background:#fff;width:95%;max-width:700px;padding:20px;border-radius:16px;max-height:90vh;overflow-y:auto}
+.close{float:right;font-size:18px;cursor:pointer}
+input,select,textarea{width:100%;padding:8px;margin:6px 0;border-radius:6px;border:1px solid #ccc}
+@media(max-width:1024px){.container{grid-template-columns:1fr;padding:10px}#map{height:360px}.main{margin-left:0}}
+@media(max-width:768px){.app{flex-direction:column}.sidebar{display:none;position:fixed;left:-300px;top:0;height:100%}.topbar{display:flex}.main{margin-left:0;padding-top:10px}table{font-size:12px}#map{height:300px}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <strong>IRIM Admin Dashboard</strong>
+  <button onclick="toggleMenu()">☰ Menu</button>
+</div>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+    <div style="text-align:center;margin-bottom:20px;">
+        <img src="https://i.pravatar.cc/150">
+        <h3>Admin</h3>
+        <p>IRIM Admin</p>
+    </div>
+    <a onclick="openModal('events')"><i class="fa fa-calendar-plus"></i> Manage Events</a>
+    <a onclick="openModal('advertisements')"><i class="fa fa-bullhorn"></i> Manage Ads</a>
+    <a onclick="openModal('users')"><i class="fa fa-users"></i> Manage Users</a>
+    <a onclick="openModal('emergency')"><i class="fa fa-phone"></i> Emergency Contacts</a>
+    <a onclick="openModal('parking')"><i class="fa fa-parking"></i> Parking Info</a>
+    <a onclick="openModal('roadEvents')"><i class="fa fa-road"></i> Road Events</a>
+    <hr style="border:1px solid #334155;margin:20px 0;">
+    <a href="index.html" class="logout"><i class="fa fa-right-from-bracket"></i> Logout</a>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+<div class="container">
+<div class="panel">
+<h3>🗺 Live Event Map</h3>
+<div id="map"></div>
+</div>
+
+<div class="panel">
+<h3>📍 Current Events & Data</h3>
+<div class="table-wrap" id="tableContainer"></div>
+</div>
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+<div class="modal-content">
+<span class="close" onclick="closeModal()">✖</span>
+<div id="modalBody"></div>
+</div>
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+// Map setup
+const map = L.map('map').setView([23.2156, 72.6369], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+let markers = [];
+
+// Demo Data
+let events = [
+  {id:1, lat:23.2156, lng:72.6369, text:"Public Rally – Sector 11"},
+  {id:2, lat:23.2180, lng:72.6400, text:"Road Maintenance – Infocity"}
+];
+let ads = [
+  {id:1,title:"IRIM Safety Ad",content:"Always Wear Helmet"}
+];
+let users = [
+  {id:1,name:"John Doe",email:"john@example.com"},
+  {id:2,name:"Jane Smith",email:"jane@example.com"}
+];
+let emergencies = [
+  {id:1,service:"Police",contact:"100"},
+  {id:2,service:"Ambulance",contact:"108"}
+];
+let parking = [
+  {id:1,city:"Ahmedabad",status:"Available"},
+  {id:2,city:"Surat",status:"Full"}
+];
+let roadEvents = [
+  {id:1,location:"NH48 Bharuch",issue:"Accident"},
+  {id:2,location:"SG Highway",issue:"Construction"}
+];
+
+// Render Map Markers
+function renderMapMarkers(){
+  markers.forEach(m=>map.removeLayer(m));
+  markers = events.map(e=>L.marker([e.lat,e.lng],{icon:L.divIcon({html:"📍"})}).addTo(map).bindPopup(e.text));
+}
+renderMapMarkers();
+
+// Open Module Modal
+function openModal(type){
+  const body=document.getElementById("modalBody");
+  let html='';
+  
+  if(type==="events"){
+    html=`<h3>Manage Events</h3>
+      <form id="eventForm">
+        <input type="hidden" id="eventId">
+        <label>Event Name:</label><input type="text" id="eventName" required>
+        <label>Latitude:</label><input type="number" step="0.0001" id="eventLat" required>
+        <label>Longitude:</label><input type="number" step="0.0001" id="eventLng" required>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save Event</button>
+      </form><hr>`;
+    html+=generateTable(events,'events',['text','lat','lng']);
+    body.innerHTML=html;
+    document.getElementById("eventForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("eventId").value);
+      const name=document.getElementById("eventName").value;
+      const lat=parseFloat(document.getElementById("eventLat").value);
+      const lng=parseFloat(document.getElementById("eventLng").value);
+      if(id){
+        const ev=events.find(e=>e.id===id);
+        ev.text=name; ev.lat=lat; ev.lng=lng;
+      } else {
+        events.push({id:Date.now(),text:name,lat,lng});
+      }
+      renderMapMarkers(); openModal('events');
+    }
+  }
+
+  else if(type==="advertisements"){
+    html=`<h3>Manage Advertisements</h3>
+      <form id="adForm">
+        <input type="hidden" id="adId">
+        <label>Title:</label><input type="text" id="adTitle" required>
+        <label>Content:</label><textarea id="adContent" required></textarea>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save Ad</button>
+      </form><hr>`;
+    html+=generateTable(ads,'ads',['title','content']);
+    body.innerHTML=html;
+    document.getElementById("adForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("adId").value);
+      const title=document.getElementById("adTitle").value;
+      const content=document.getElementById("adContent").value;
+      if(id){
+        const ad=ads.find(a=>a.id===id);
+        ad.title=title; ad.content=content;
+      } else {
+        ads.push({id:Date.now(),title,content});
+      }
+      openModal('advertisements');
+    }
+  }
+
+  else if(type==="users"){
+    html=`<h3>Manage Users</h3>
+      <form id="userForm">
+        <input type="hidden" id="userId">
+        <label>Name:</label><input type="text" id="userName" required>
+        <label>Email:</label><input type="email" id="userEmail" required>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save User</button>
+      </form><hr>`;
+    html+=generateTable(users,'users',['name','email']);
+    body.innerHTML=html;
+    document.getElementById("userForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("userId").value);
+      const name=document.getElementById("userName").value;
+      const email=document.getElementById("userEmail").value;
+      if(id){
+        const u=users.find(u=>u.id===id);
+        u.name=name; u.email=email;
+      } else {users.push({id:Date.now(),name,email});}
+      openModal('users');
+    }
+  }
+
+  else if(type==="emergency"){
+    html=`<h3>Emergency Contacts</h3>
+      <form id="emForm">
+        <input type="hidden" id="emId">
+        <label>Service Name:</label><input type="text" id="emService" required>
+        <label>Contact Number:</label><input type="text" id="emContact" required>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save Contact</button>
+      </form><hr>`;
+    html+=generateTable(emergencies,'emergency',['service','contact']);
+    body.innerHTML=html;
+    document.getElementById("emForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("emId").value);
+      const service=document.getElementById("emService").value;
+      const contact=document.getElementById("emContact").value;
+      if(id){
+        const em=emergencies.find(e=>e.id===id);
+        em.service=service; em.contact=contact;
+      } else {emergencies.push({id:Date.now(),service,contact});}
+      openModal('emergency');
+    }
+  }
+
+  else if(type==="parking"){
+    html=`<h3>Manage Parking Info</h3>
+      <form id="parkForm">
+        <input type="hidden" id="parkId">
+        <label>City:</label><input type="text" id="parkCity" required>
+        <label>Status:</label><select id="parkStatus"><option>Available</option><option>Full</option></select>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save Parking</button>
+      </form><hr>`;
+    html+=generateTable(parking,'parking',['city','status']);
+    body.innerHTML=html;
+    document.getElementById("parkForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("parkId").value);
+      const city=document.getElementById("parkCity").value;
+      const status=document.getElementById("parkStatus").value;
+      if(id){
+        const p=parking.find(p=>p.id===id);
+        p.city=city; p.status=status;
+      } else {parking.push({id:Date.now(),city,status});}
+      openModal('parking');
+    }
+  }
+
+  else if(type==="roadEvents"){
+    html=`<h3>Manage Road Events</h3>
+      <form id="roadForm">
+        <input type="hidden" id="roadId">
+        <label>Location:</label><input type="text" id="roadLoc" required>
+        <label>Issue:</label><input type="text" id="roadIssue" required>
+        <button type="submit" style="background:#16a34a;color:#fff;margin-top:10px;">Save Road Event</button>
+      </form><hr>`;
+    html+=generateTable(roadEvents,'roadEvents',['location','issue']);
+    body.innerHTML=html;
+    document.getElementById("roadForm").onsubmit=function(e){
+      e.preventDefault();
+      const id=parseInt(document.getElementById("roadId").value);
+      const location=document.getElementById("roadLoc").value;
+      const issue=document.getElementById("roadIssue").value;
+      if(id){
+        const r=roadEvents.find(r=>r.id===id);
+        r.location=location; r.issue=issue;
+      } else {roadEvents.push({id:Date.now(),location,issue});}
+      openModal('roadEvents');
+    }
+  }
+
+  document.getElementById("modal").style.display="flex";
+}
+
+// Generate Table
+function generateTable(data,module,fields){
+  let header = '<table><tr>';
+  fields.forEach(f=>header+=`<th>${f.charAt(0).toUpperCase()+f.slice(1)}</th>`);
+  header+='<th>Actions</th></tr>';
+  let rows = data.map(d=>`<tr>`+fields.map(f=>`<td>${f.includes('lat')||f.includes('lng')?parseFloat(d[f]).toFixed(4):d[f]}</td>`).join('')+
+    `<td><button onclick="editItem('${module}',${d.id})" style="background:#2563eb;color:#fff;">Edit</button>
+     <button onclick="deleteItem('${module}',${d.id})" style="background:#dc2626;color:#fff;">Delete</button></td></tr>`).join('');
+  return header+rows+'</table>';
+}
+
+// Edit Item
+function editItem(module,id){
+  let item;
+  if(module==='events') item=events.find(e=>e.id===id);
+  if(module==='ads') item=ads.find(a=>a.id===id);
+  if(module==='users') item=users.find(u=>u.id===id);
+  if(module==='emergency') item=emergencies.find(e=>e.id===id);
+  if(module==='parking') item=parking.find(p=>p.id===id);
+  if(module==='roadEvents') item=roadEvents.find(r=>r.id===id);
+
+  openModal(module==='ads'?'advertisements':module);
+  setTimeout(()=>{
+    for(let key in item){
+      const input = document.getElementById(module==='ads'?key==='title'?'adTitle':'adContent':module==='events'?key==='text'?'eventName':key==='lat'?'eventLat':'eventLng':
+                      module==='users'?key==='name'?'userName':'userEmail':
+                      module==='emergency'?key==='service'?'emService':'emContact':
+                      module==='parking'?key==='city'?'parkCity':'parkStatus':
+                      module==='roadEvents'?key==='location'?'roadLoc':'roadIssue':null);
+      if(input) input.value=item[key];
+    }
+  },100);
+}
+
+// Delete Item
+function deleteItem(module,id){
+  if(confirm("Are you sure to delete?")){
+    if(module==='events') events=events.filter(e=>e.id!==id);
+    if(module==='ads') ads=ads.filter(a=>a.id!==id);
+    if(module==='users') users=users.filter(u=>u.id!==id);
+    if(module==='emergency') emergencies=emergencies.filter(e=>e.id!==id);
+    if(module==='parking') parking=parking.filter(p=>p.id!==id);
+    if(module==='roadEvents') roadEvents=roadEvents.filter(r=>r.id!==id);
+    openModal(module==='ads'?'advertisements':module);
+  }
+}
+
+// Close Modal
+function closeModal(){document.getElementById("modal").style.display="none";}
+
+// Sidebar toggle
+function toggleMenu(){
+  const s=document.getElementById("sidebar");
+  s.style.left = s.style.left==="0px" ? "-300px" : "0px";
+}
+
+// Initial Render
+function renderTable(){openModal('events'); closeModal();}
+renderMapMarkers();
+</script>
+</body>
+</html>
